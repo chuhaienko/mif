@@ -1,2 +1,2 @@
 # mif
-Node.js microservice framework
+Node.js microservices framework

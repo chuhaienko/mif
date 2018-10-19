@@ -1,0 +1,25 @@
+{
+  "name": "mif",
+  "version": "0.0.1",
+  "description": "Framework for microservices",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --recursive"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chuhaienko/mif.git"
+  },
+  "keywords": [
+    "framework",
+    "microservices",
+    "rabbitmq",
+    "express.js"
+  ],
+  "author": "Yurii Chuhaienko",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chuhaienko/mif/issues"
+  },
+  "homepage": "https://github.com/chuhaienko/mif#readme"
+}
