@@ -11,12 +11,3 @@ module.exports.default = function () {
 		timeFormat: 'YYYY-MM-HH HH:mm:ss.SSS Z'
 	};
 };
-
-module.exports.staging = function () {
-};
-
-module.exports.production = {
-};
-
-module.exports.test = {
-};

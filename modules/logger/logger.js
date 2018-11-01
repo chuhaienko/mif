@@ -50,7 +50,7 @@ class Logger extends BaseModule {
 		return new Promise((resolve) => {
 			setTimeout(() => {
 				resolve();
-			}, 5000);
+			}, 1000);
 		});
 	}
 }

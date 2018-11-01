@@ -9,23 +9,28 @@ const _          = require('lodash');
 
 module.exports = class Framework {
 	constructor () {
-		this.appDir = process.env.PWD;
-		this.mifDir = path.resolve(__dirname, '../');
-		this.nodeEnv = process.env.NODE_ENV;
+		this._initializedAt = null;
+		this._startedAt     = null;
+		this._stoppedAt     = null;
+
+		this._appDir  = process.env.PWD;
+		this._mifDir  = path.resolve(__dirname, '../');
 
 		this.config  = {};
 		this.modules = {};
 
 		this.AppError = AppError;
 
-		this.flags = {
+		this._flags = {
 			isStopping: false
 		};
 	}
 
 	async init () {
-		let mifConfig = this._loadConfigs(path.resolve(this.mifDir, 'config'));
-		let appConfig = this._loadConfigs(path.resolve(this.appDir, 'config'));
+		this._env = this._loadEnv();
+
+		let mifConfig = this._loadConfigs(path.resolve(this._mifDir, 'config'));
+		let appConfig = this._loadConfigs(path.resolve(this._appDir, 'config'));
 		this.config = _.merge(mifConfig, appConfig);
 
 		this.modules = this._loadModules();
@@ -37,9 +42,9 @@ module.exports = class Framework {
 		for (let i = 0; i < modulesNames.length; i += 1) {
 			const module = this.modules[modulesNames[i]];
 
-			this.logger && this.logger.info(`Module ${modulesNames[i]} is initing`);
+			this.logger && this.logger.info(`Module ${modulesNames[i]} is initializing`);
 			await module.init();
-			this.logger && this.logger.info(`Module ${modulesNames[i]} is inited`);
+			this.logger && this.logger.info(`Module ${modulesNames[i]} is initialized`);
 		}
 	}
 
@@ -56,8 +61,8 @@ module.exports = class Framework {
 	}
 
 	async stop () {
-		if (!this.flags.isStopping) {
-			this.flags.isStopping = true;
+		if (!this._flags.isStopping) {
+			this._flags.isStopping = true;
 		} else {
 			return;
 		}
@@ -88,6 +93,26 @@ module.exports = class Framework {
 	}
 
 	/**
+	 * Return value of env variable or default value
+	 * @param keyPath
+	 * @param defaultValue
+	 * @returns {*}
+	 */
+	env (keyPath, defaultValue) {
+		return _.get(this._env, keyPath, defaultValue);
+	}
+
+	_loadEnv () {
+		return _.mapValues(process.env, (it, key) => {
+			try {
+				return JSON.parse(it);
+			} catch (err) {
+				return it;
+			}
+		});
+	}
+
+	/**
 	 * Load configs from directory. Resolve only default and {env} config. Merge them
 	 * @param configDir
 	 * @returns {Object}
@@ -101,14 +126,14 @@ module.exports = class Framework {
 				let config = {};
 
 				if (confObj.default) {
-					config.default = Framework.resolveConfigObj(confObj.default);
+					config.default = this._resolveConfigObj(confObj.default);
 				}
 
-				if (confObj[this.nodeEnv]) {
-					config[this.nodeEnv] = Framework.resolveConfigObj(confObj[this.nodeEnv]);
+				if (confObj[this._env.NODE_ENV]) {
+					config[this._env.NODE_ENV] = this._resolveConfigObj(confObj[this._env.NODE_ENV]);
 				}
 
-				return _.merge(config.default, config[this.nodeEnv]);
+				return _.merge(config.default, config[this._env.NODE_ENV]);
 			} else {
 				return confObj;
 			}
@@ -133,11 +158,11 @@ module.exports = class Framework {
 
 			// Try app module
 			try {
-				let modulePath = path.resolve(this.appDir, `modules/${name}/${name}.js`);
+				let modulePath = path.resolve(this._appDir, `modules/${name}/${name}.js`);
 				Module = require(modulePath);
 			} catch (appErr) {
 				try {
-					let modulePath = path.resolve(this.mifDir, `modules/${name}/${name}.js`);
+					let modulePath = path.resolve(this._mifDir, `modules/${name}/${name}.js`);
 					Module = require(modulePath);
 				} catch (mifErr) {
 					throw new this.AppError({
@@ -164,6 +189,11 @@ module.exports = class Framework {
 		return config;
 	}
 
+	/**
+	 * Return call order lists of modules
+	 * @returns {{init: Array, start: Array, stop: Array}}
+	 * @private
+	 */
 	_getModulesOrder () {
 		let order = {
 			init:  [],
@@ -200,14 +230,22 @@ module.exports = class Framework {
 	 * Recursive function for resolving values from functions
 	 * @param confObj
 	 * @returns {*}
+	 * @private
 	 */
-	static resolveConfigObj (confObj) {
+	_resolveConfigObj (confObj) {
 		if (typeof confObj === 'function') {
-			return Framework.resolveConfigObj(confObj());
+			return this._resolveConfigObj(confObj.call(this));
+
 		} else if (typeof confObj === 'object') {
-			return _.mapValues(confObj, Framework.resolveConfigObj);
+			return _.mapValues(confObj, (it) => {
+				return this._resolveConfigObj(it);
+			});
+
 		} else if (Array.isArray(confObj)) {
-			return confObj.map(Framework.resolveConfigObj);
+			return confObj.map((it) => {
+				return this._resolveConfigObj(it);
+			});
+
 		} else {
 			return confObj;
 		}
