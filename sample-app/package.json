@@ -1,0 +1,19 @@
+{
+  "name": "mif-test-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test app of mif",
+  "main": "index.js",
+  "scripts": {
+    "start": "mif start",
+    "test": "mocha --recursive"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "mif": "*"
+  },
+  "devDependencies": {
+    "code": "*",
+    "mocha": "*"
+  }
+}

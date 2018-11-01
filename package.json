@@ -1,7 +1,7 @@
 {
   "name": "mif",
-  "version": "0.0.1",
-  "description": "Framework for microservices",
+  "version": "1.0.0",
+  "description": "Modular framework for microservices",
   "main": "index.js",
   "scripts": {
     "test": "mocha --recursive"
@@ -13,13 +13,21 @@
   "keywords": [
     "framework",
     "microservices",
-    "rabbitmq",
-    "express.js"
+    "rest"
   ],
+  "bin": {
+    "mif": "./bin/mif"
+  },
   "author": "Yurii Chuhaienko",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/chuhaienko/mif/issues"
   },
-  "homepage": "https://github.com/chuhaienko/mif#readme"
+  "homepage": "https://github.com/chuhaienko/mif#readme",
+  "dependencies": {
+    "lodash": "^4.17.11",
+    "moment": "^2.22.2",
+    "require-dir": "^1.1.0",
+    "winston": "^3.1.0"
+  }
 }
