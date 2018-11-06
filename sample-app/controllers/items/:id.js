@@ -1,0 +1,20 @@
+'use strict';
+
+exports.GET = {
+	description: 'Return item by id',
+	auth:        {
+		type: 'try'
+	},
+
+	validate: (joi) => {
+		return {
+			params: joi.object.keys({
+				id: joi.number().integer().required()
+			})
+		};
+	},
+
+	handler: function (req) {
+		return this.misc.items[req.params.id];
+	}
+};

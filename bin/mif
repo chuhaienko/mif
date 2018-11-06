@@ -32,6 +32,9 @@ process.on('unhandledRejection', async (err) => {
 	process.exit(1);
 });
 
-process.on('beforeExit', async () => {
+process.on('beforeExit', async (exitCode) => {
+	console.log('Exit event is caught');
 	await app.stop();
+
+	process.exit(exitCode);
 });

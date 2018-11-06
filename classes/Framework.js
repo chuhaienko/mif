@@ -16,22 +16,36 @@ module.exports = class Framework {
 		this._appDir  = process.env.PWD;
 		this._mifDir  = path.resolve(__dirname, '../');
 
+		this.name = '';
 		this.config  = {};
 		this.modules = {};
 
 		this.AppError = AppError;
 
-		this._flags = {
-			isStopping: false
-		};
+		this.misc = {};
+
+		this._isInitializing = false;
+		this._isStarting = false;
+		this._isStopping = false;
 	}
 
 	async init () {
+		if (!this._isInitializing) {
+			this._isInitializing = true;
+		} else {
+			return;
+		}
+
+		console.log(`=== === === mif initializing... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
+
 		this._env = this._loadEnv();
 
 		let mifConfig = this._loadConfigs(path.resolve(this._mifDir, 'config'));
 		let appConfig = this._loadConfigs(path.resolve(this._appDir, 'config'));
 		this.config = _.merge(mifConfig, appConfig);
+
+		this.name = this._loadName();
+		console.log(`=== === === NAME: ${this.name}`);
 
 		this.modules = this._loadModules();
 
@@ -46,9 +60,20 @@ module.exports = class Framework {
 			await module.init();
 			this.logger && this.logger.info(`Module ${modulesNames[i]} is initialized`);
 		}
+
+		this._initializedAt  = new Date().toISOString();
+		this._isInitializing = false;
 	}
 
 	async start () {
+		if (!this._isStarting) {
+			this._isStarting = true;
+		} else {
+			return;
+		}
+
+		console.log(`=== === === mif starting... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
+
 		// Start modules
 		let modulesNames = this.modulesOrder.start;
 		for (let i = 0; i < modulesNames.length; i += 1) {
@@ -58,14 +83,19 @@ module.exports = class Framework {
 			await module.start();
 			this.logger && this.logger.info(`Module ${modulesNames[i]} is started`);
 		}
+
+		this._startedAt  = new Date().toISOString();
+		this._isStarting = false;
 	}
 
 	async stop () {
-		if (!this._flags.isStopping) {
-			this._flags.isStopping = true;
+		if (!this._isStopping) {
+			this._isStopping = true;
 		} else {
 			return;
 		}
+
+		console.log(`=== === === mif stopping... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
 
 		await new Promise(async (resolve, reject) => {
 			// Timeout for stop
@@ -90,10 +120,13 @@ module.exports = class Framework {
 
 			return resolve();
 		});
+
+		this._stoppedAt  = new Date().toISOString();
+		this._isStopping = false;
 	}
 
 	/**
-	 * Return value of env variable or default value
+	 * Returns value of env variable or default value
 	 * @param keyPath
 	 * @param defaultValue
 	 * @returns {*}
@@ -102,6 +135,47 @@ module.exports = class Framework {
 		return _.get(this._env, keyPath, defaultValue);
 	}
 
+	/**
+	 * Returns dirs paths
+	 * @returns {{app: string, mif: string}}
+	 */
+	getDirs () {
+		return {
+			app: this._appDir,
+			mif: this._mifDir,
+		};
+	}
+
+	/**
+	 * Return event dates
+	 * @returns {{startedAt: null}}
+	 */
+	getDates () {
+		return {
+			initializedAt: this._initializedAt,
+			startedAt:     this._startedAt,
+			stoppedAt:     this._stoppedAt,
+		};
+	}
+
+	/**
+	 * Returns states of app
+	 * @returns {{isInitializing: boolean, isStarting: boolean, isStopping: boolean}}
+	 */
+	getStates () {
+		return {
+			isInitializing: this._isInitializing,
+			isStarting:     this._isStarting,
+			isStopping:     this._isStopping
+		};
+	}
+
+
+	/**
+	 * Returns handled environment variables
+	 * @returns {Object}
+	 * @private
+	 */
 	_loadEnv () {
 		return _.mapValues(process.env, (it, key) => {
 			try {
@@ -113,7 +187,36 @@ module.exports = class Framework {
 	}
 
 	/**
-	 * Load configs from directory. Resolve only default and {env} config. Merge them
+	 * Returns name of current app
+	 * @returns {*}
+	 * @private
+	 */
+	_loadName () {
+		try {
+			if (this.config.mif.name) {
+				 return this.config.mif.name;
+			} else {
+				const packageJson = require(path.resolve(this._appDir, 'package.json'));
+
+				if (packageJson.serviceName || packageJson.name) {
+					return packageJson.serviceName || packageJson.name;
+				} else {
+					throw new this.AppError({
+						code:    'INVALID_PACKAGE_JSON',
+						message: 'Valid package.json file is required'
+					});
+				}
+			}
+		} catch (err) {
+			throw new this.AppError({
+				code:    'NO_PACKAGE_JSON',
+				message: 'Valid package.json file is required'
+			});
+		}
+	}
+
+	/**
+	 * Returns configs from directory. Resolve only default and {env} config. Merge them
 	 * @param configDir
 	 * @returns {Object}
 	 * @private
@@ -141,7 +244,7 @@ module.exports = class Framework {
 	}
 
 	/**
-	 * Load modules corresponded to config. First try module from app dir, after try from mif dir
+	 * Returns modules corresponded to config. First try module from app dir, after try from mif dir
 	 * @returns {Object}
 	 * @private
 	 */
@@ -167,7 +270,7 @@ module.exports = class Framework {
 				} catch (mifErr) {
 					throw new this.AppError({
 						code:    'MODULE_DOES_NOT_EXIST',
-						message: `File for module ${name} does not exist`,
+						message: `File for module "${name}" does not exist`,
 						details: {
 							appErr: appErr,
 							mifErr: mifErr
@@ -179,7 +282,7 @@ module.exports = class Framework {
 			if (!(Module.prototype instanceof BaseModule)) {
 				throw new this.AppError({
 					code:    'MODULE_IS_INVALID',
-					message: `Module ${name} does not extend BaseModule`
+					message: `Module "${name}" does not extend BaseModule`
 				});
 			}
 
@@ -190,7 +293,7 @@ module.exports = class Framework {
 	}
 
 	/**
-	 * Return call order lists of modules
+	 * Returns call order lists of modules
 	 * @returns {{init: Array, start: Array, stop: Array}}
 	 * @private
 	 */

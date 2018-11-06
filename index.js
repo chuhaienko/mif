@@ -2,5 +2,6 @@
 
 /* eslint global-require: 0 */
 module.exports = {
-	BaseModule: require('./classes/BaseModule')
+	BaseModule: require('./classes/BaseModule'),
+	BaseAuth:   require('./classes/BaseAuth'),
 };

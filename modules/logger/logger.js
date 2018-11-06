@@ -9,10 +9,6 @@ const {BaseModule} = require('../../index');
  * It exposes `logger` to `this`
  */
 class Logger extends BaseModule {
-	constructor (app, config) {
-		super(app, config);
-	}
-
 	async init () {
 		winston.addColors({
 			emerg:  'bold yellow bgRed',
@@ -39,7 +35,7 @@ class Logger extends BaseModule {
 			]
 		});
 
-		this.app.logger.info('Init module: logger');
+		this.app.logger.info('Module logger is initialized');
 	}
 
 	async start () {
