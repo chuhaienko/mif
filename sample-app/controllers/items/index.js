@@ -3,7 +3,8 @@
 exports.GET = {
 	description: 'Get list of items',
 	auth:        {
-		type: 'try'
+		type:   'basic-auth',
+		method: 'try',
 	},
 
 	handler: function () {
@@ -14,8 +15,9 @@ exports.GET = {
 exports.POST = {
 	description: 'Save item',
 	auth:        {
-		type:  'required',
-		scope: ['user']
+		type:   'basic-auth',
+		method: 'required',
+		scope:  ['user'],
 	},
 
 	validate: (joi) => {

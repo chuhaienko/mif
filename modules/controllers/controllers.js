@@ -18,7 +18,8 @@ module.exports = class Controllers extends BaseModule {
 		const configSchema = Joi.object().keys({
 			description: Joi.string().required(),
 			auth:        Joi.object().keys({
-				type: Joi.string().required()
+				type:   Joi.string().required(),
+				method: Joi.string(),
 			}).options({allowUnknown: true}),
 			validate: [Joi.func(), Joi.object()],
 			handler:  Joi.func().required()
@@ -54,7 +55,16 @@ module.exports = class Controllers extends BaseModule {
 					}
 
 					if (config.auth) {
-						if (!this.app.auth || !this.app.auth[config.auth.type]) {
+						if (this.app.auth[config.auth.type]) {
+							if (config.auth.method) {
+								if (typeof this.app.auth[config.auth.type][config.auth.method] !== 'function') {
+									throw new this.app.AppError({
+										code:    'NO_AUTH_METHOD',
+										message: `Controller "${methodName} ${controllerPath}" requires auth method "${config.auth.type}.${config.auth.method}"`
+									});
+								}
+							}
+						} else {
 							throw new this.app.AppError({
 								code:    'NO_AUTH',
 								message: `Controller "${methodName} ${controllerPath}" requires auth type "${config.auth.type}"`

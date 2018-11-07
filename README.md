@@ -38,3 +38,6 @@ Priority: -980
 `this.controllers` - hash of controllers from dir ./controllers
 
 Priority: -970
+
+### WebServer
+Priority: -900

@@ -3,7 +3,8 @@
 exports.GET = {
 	description: 'Return item by id',
 	auth:        {
-		type: 'try'
+		type:   'basic-auth',
+		method: 'try',
 	},
 
 	validate: (joi) => {

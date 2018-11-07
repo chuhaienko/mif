@@ -3,7 +3,8 @@
 exports.ALL = {
 	description: 'Ping controller',
 	auth:        {
-		type: 'required'
+		type:   'basic-auth',
+		method: 'try',
 	},
 
 	handler: function (req) {
