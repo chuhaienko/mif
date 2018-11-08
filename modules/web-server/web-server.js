@@ -9,10 +9,18 @@ module.exports = class WebServer extends BaseModule {
 	async init () {
 		this.server = express();
 
-		this.server.all('*', this.requestHandler.bind(this));
+		this.server.use(express.json({
+			limit: this.config.bodyLimit
+		}));
+		this.server.use(express.urlencoded({
+			extended: false,
+			limit:    this.config.bodyLimit
+		}));
 	}
 
 	async start () {
+		this.server.all('*', this.requestHandler.bind(this));
+
 		await new Promise((resolve, reject) => {
 			this.netServer = this.server.listen(this.config.port, () => {
 				this.netServer.removeAllListeners('error');
@@ -47,23 +55,97 @@ module.exports = class WebServer extends BaseModule {
 	}
 
 	async requestHandler (req, res) {
-		// TODO: ===
-		// Run preController
+		try {
+			// Run preController
 
-		// Select corresponded controller
+			// Select corresponded controller
+			const controller = this.selectController(req);
 
-		// Run auth
+			// Prepare req object
+			// {method, path, query, body, params, headers, ip}
+			this.prepareReqParams(req, controller);
 
-		// Run preHandler
-		// Run handler
-		// Run postHandler
+			// Run auth
 
-		// Run postController
+			// Run preHandler
+			// Run handler
+			// Run postHandler
 
-		// send response
+			// Run postController
 
-		res.send({
-			date: new Date()
-		});
+			// send response
+			return res.send({
+				date: new Date()
+			});
+		} catch (err) {
+			return res.send(this.app.AppError.from(err));
+		}
+	}
+
+	/**
+	 * Return matched controller or throw error with code 404 or 405
+	 * @param req
+	 * @returns {*}
+	 */
+	selectController (req) {
+		let pathIsExists = false;
+
+		req.pathParts = req.path.split('/');
+
+		let selected;
+
+		for (let i = 0; i < this.app.controllers.length; i += 1) {
+			let controller = this.app.controllers[i];
+
+			// Compare paths lengths
+			if (req.pathParts.length === controller._pathParts.length) {
+
+				// Compare paths
+				let pathIsMatched = req.pathParts.every((pathPart, i) => {
+					let controllerPart = controller._pathParts[i];
+
+					if (controllerPart.startsWith(':')) {
+						return true;
+					} else if (controllerPart === pathPart) {
+						return true;
+					} else {
+						return false;
+					}
+				});
+
+				if (pathIsMatched) {
+					pathIsExists = true;
+
+					if (controller._method === req.method || controller._method === 'ALL') {
+						selected = controller; // Our controller
+						break;
+					}
+				} else { // Path is exists but there is not corresponded method
+					if (pathIsExists) {
+						break;
+					}
+				}
+			}
+		}
+
+		if (selected) {
+			return selected;
+		} else {
+			throw new this.app.AppError({
+				code: (pathIsExists ? 405 : 404)
+			});
+		}
+	}
+
+	prepareReqParams (req, controller) {
+		for (let i = 0; i < controller._pathParts.length; i += 1) {
+			const pathPart = controller._pathParts[i];
+
+			if (pathPart.startsWith(':')) {
+				let paramName = pathPart.substr(1);
+
+				req.params[paramName] = req.pathParts[i];
+			}
+		}
 	}
 };

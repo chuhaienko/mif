@@ -9,6 +9,8 @@ module.exports.default = function () {
 			stop:  -900
 		},
 
-		port: 0
+		port: 0,
+
+		bodyLimit: '1mb',
 	};
 };

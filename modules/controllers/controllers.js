@@ -12,7 +12,7 @@ const _            = require('lodash');
 /* eslint global-require:0 */
 module.exports = class Controllers extends BaseModule {
 	async init () {
-		this.app.controllers = {};
+		this.app.controllers = [];
 		this.allowedMethods = http.METHODS.concat('ALL');
 
 		const configSchema = Joi.object().keys({
@@ -72,9 +72,16 @@ module.exports = class Controllers extends BaseModule {
 						}
 					}
 
-					this.app.controllers[`${methodName} ${controllerPath}`] = config;
+					this.app.controllers.push(Object.assign({
+						_method: methodName,
+						_path:   controllerPath,
+					}, config));
 				}
 			});
+
+			this._sortControllers();
+
+			this._prepareControllers();
 		});
 	}
 
@@ -84,5 +91,27 @@ module.exports = class Controllers extends BaseModule {
 
 	async stop () {
 		// do nothing
+	}
+
+	_sortControllers () {
+		this.app.controllers.sort((a, b) => { // Move controllers with method ALL to end of list
+			return a._method === 'ALL';
+		});
+
+		this.app.controllers.sort((a, b) => { // Sort controllers by path
+			return a._path > b._path;
+		});
+	}
+
+	_prepareControllers () {
+		this.app.controllers.forEach((controller) => {
+			controller._pathParts = this._getPathParts(controller._path);
+		});
+	}
+
+	_getPathParts (urlPath) {
+		let parts = urlPath.split('/');
+
+		return parts;
 	}
 };

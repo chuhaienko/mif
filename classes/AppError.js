@@ -1,5 +1,8 @@
 'use strict';
 
+const http = require('http');
+
+
 module.exports = class AppError extends Error {
 	constructor (data) {
 		super();
@@ -9,5 +12,17 @@ module.exports = class AppError extends Error {
 		this.message = data.message;
 		this.code    = data.code;
 		this.details = data.details;
+
+		if (typeof this.code === 'number' && !this.message) {
+			this.message = http.STATUS_CODES[this.code] || '';
+		}
+	}
+
+	static from (err) {
+		if (err.isAppError) {
+			return err;
+		} else {
+			return new AppError(err);
+		}
 	}
 };
