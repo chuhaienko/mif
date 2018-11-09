@@ -25,4 +25,12 @@ module.exports = class AppError extends Error {
 			return new AppError(err);
 		}
 	}
+
+	toJSON () {
+		return {
+			code:    this.code,
+			message: this.message,
+			details: this.details
+		};
+	}
 };

@@ -12,11 +12,11 @@ module.exports = class BasicAuth extends BaseAuth {
 
 	}
 
-	async try (req, authConfig) {
+	async try (req, authConfig, authResult) {
 
 	}
 
-	async required (req, authConfig) {
+	async required (req, authConfig, authResult) {
 
 	}
 };

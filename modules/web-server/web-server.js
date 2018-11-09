@@ -2,6 +2,9 @@
 
 const {BaseModule} = require('../../');
 const express      = require('express');
+const bs58         = require('bs58');
+const crypto       = require('crypto');
+const util         = require('util');
 
 
 /* eslint global-require:0 */
@@ -55,30 +58,71 @@ module.exports = class WebServer extends BaseModule {
 	}
 
 	async requestHandler (req, res) {
+		let result;
+
+		req.startedAt = Date.now();
+		req.id = bs58.encode(crypto.randomBytes(8)).substr(-8) + '-' +  String(Date.now()).substr(-4);
+
+		this.app.logger.http(`<-- ${req.ip} ${req.method} ${req.path} ${req.id}`);
+
 		try {
 			// Run preController
 
 			// Select corresponded controller
 			const controller = this.selectController(req);
 
-			// Prepare req object
-			// {method, path, query, body, params, headers, ip}
+			// Prepare req object {method, path, query, body, params, headers, ip, auth}
 			this.prepareReqParams(req, controller);
 
 			// Run auth
+			req.auth = await this.runAuth(req, controller.auth);
 
 			// Run preHandler
+
 			// Run handler
+			result = await controller.handler.call(this.app, req, res);
+
 			// Run postHandler
 
-			// Run postController
-
-			// send response
-			return res.send({
-				date: new Date()
-			});
 		} catch (err) {
-			return res.send(this.app.AppError.from(err));
+			if (!res.headersSent) {
+				let error;
+
+				if (err.isAppError) {
+					error = err;
+				} else {
+					this.app.logger.error(util.inspect(err));
+
+					error = new this.app.AppError({
+						code: 500
+					});
+				}
+
+				res.status(Number(error.code) || 400);
+				result = error;
+			}
+		}
+
+		// Run postController
+
+		// Send response
+		if (!res.headersSent) {
+			let logger = this.app.logger.http;
+
+			if (result instanceof Error) {
+				if (res.statusCode >= 500) {
+					logger = this.app.logger.error;
+					logger(JSON.stringify(result));
+
+				} else {
+					logger = this.app.logger.warn;
+					logger(JSON.stringify(result));
+				}
+			}
+
+			logger(`--> ${req.ip} ${req.method} ${req.path} ${req.id} ${res.statusCode} ${Date.now() - req.startedAt} ms`);
+
+			return res.send(result);
 		}
 	}
 
@@ -147,5 +191,21 @@ module.exports = class WebServer extends BaseModule {
 				req.params[paramName] = req.pathParts[i];
 			}
 		}
+	}
+
+	async runAuth (req, authConfig) {
+		if (!authConfig) {
+			return;
+		}
+
+		const authInstance = this.app.auth[authConfig.type];
+
+		let authResult = await authInstance.auth.call(this.app, req, authConfig);
+
+		if (authConfig.method) {
+			authResult = await authInstance[authConfig.method].call(this.app, req, authConfig, authResult);
+		}
+
+		return authResult;
 	}
 };

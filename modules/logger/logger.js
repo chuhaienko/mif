@@ -11,21 +11,20 @@ const {BaseModule} = require('../../index');
 class Logger extends BaseModule {
 	async init () {
 		winston.addColors({
-			emerg:  'bold yellow bgRed',
-			alert:  'yellow bgRed',
-			crit:   'red bgYellow',
-			error:  'red',
-			warn:   'yellow',
-			notice: 'green',
-			info:   'blue',
-			debug:  'cyan'
+			error:   'red',
+			warn:    'yellow',
+			info:    'blue',
+			http:    'green',
+			verbose: 'green whiteBG',
+			debug:   'blue whiteBG',
+			silly:   'yellow whiteBG',
 		});
 		const loggerFormat = winston.format.printf((data) => {
 			return `${moment().format(this.config.timeFormat)} ${data.level}: ${data.message}`;
 		});
 		this.app.logger = winston.createLogger({
-			level:  (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-			levels: winston.config.syslog.levels,
+			level:  (process.env.NODE_ENV === 'production' ? 'info' : 'silly'),
+			levels: winston.config.npm.levels,
 			format: winston.format.combine(
 				winston.format.colorize(),
 				loggerFormat
@@ -33,6 +32,10 @@ class Logger extends BaseModule {
 			transports: [
 				new winston.transports.Console()
 			]
+		});
+
+		Object.keys(winston.config.npm.levels).forEach((level) => {
+			this.app.logger[level](`${level} message`);
 		});
 
 		this.app.logger.info('Module logger is initialized');
