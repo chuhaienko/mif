@@ -40,4 +40,11 @@ Priority: -980
 Priority: -970
 
 ### WebServer
+`this.webserver.setPreController(func)` - sets method which will run before controller is chosen
+`this.webserver.setPreHandler(func)` - sets method which will run before handler
+`this.webserver.setPostHandler(func)` - sets method which will run after handler
+`this.webserver.setPostController(func)` - sets method which will run before sending response
+`preController` and `preHandler` get `(req, res)`
+`postHandler` and `postController` get `(result, req, res)` and return `result`. So these methods affect result which will send as response
+
 Priority: -900

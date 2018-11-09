@@ -19,10 +19,15 @@ module.exports = class WebServer extends BaseModule {
 			extended: false,
 			limit:    this.config.bodyLimit
 		}));
+
+		this._preController;
+		this._preHandler;
+		this._postHandler;
+		this._postController;
 	}
 
 	async start () {
-		this.server.all('*', this.requestHandler.bind(this));
+		this.server.all('*', this._requestHandler.bind(this));
 
 		await new Promise((resolve, reject) => {
 			this.netServer = this.server.listen(this.config.port, () => {
@@ -57,66 +62,74 @@ module.exports = class WebServer extends BaseModule {
 		});
 	}
 
-	async requestHandler (req, res) {
+	async _requestHandler (req, res) {
 		let result;
 
 		req.startedAt = Date.now();
 		req.id = bs58.encode(crypto.randomBytes(8)).substr(-8) + '-' +  String(Date.now()).substr(-4);
+		req.local = {};
 
 		this.app.logger.http(`<-- ${req.ip} ${req.method} ${req.path} ${req.id}`);
 
 		try {
 			// Run preController
+			if (this._preController) {
+				await this._preController.call(this.app, req, res);
+			}
 
 			// Select corresponded controller
-			const controller = this.selectController(req);
+			const controller = this._selectController(req);
 
 			// Prepare req object {method, path, query, body, params, headers, ip, auth}
-			this.prepareReqParams(req, controller);
+			this._prepareReqParams(req, controller);
 
 			// Run auth
-			req.auth = await this.runAuth(req, controller.auth);
+			req.auth = await this._runAuth(req, controller.auth);
 
 			// Run preHandler
+			if (this._preHandler) {
+				await this._preHandler.call(this.app, req, res);
+			}
 
 			// Run handler
 			result = await controller.handler.call(this.app, req, res);
 
 			// Run postHandler
+			if (this._postHandler) {
+				result = await this._postHandler.call(this.app, result, req, res);
+			}
 
 		} catch (err) {
-			if (!res.headersSent) {
-				let error;
-
-				if (err.isAppError) {
-					error = err;
-				} else {
-					this.app.logger.error(util.inspect(err));
-
-					error = new this.app.AppError({
-						code: 500
-					});
-				}
-
-				res.status(Number(error.code) || 400);
-				result = error;
-			}
+			result = err;
 		}
 
-		// Run postController
+		// Run preResponse
+		if (this._postController) {
+			result = await this._postController.call(this.app, result, req, res);
+		}
 
 		// Send response
 		if (!res.headersSent) {
 			let logger = this.app.logger.http;
 
 			if (result instanceof Error) {
-				if (res.statusCode >= 500) {
-					logger = this.app.logger.error;
-					logger(JSON.stringify(result));
+				logger = this.app.logger.error;
 
-				} else {
-					logger = this.app.logger.warn;
+				if (result instanceof this.app.AppError) {
+					if (Number(result.code) < 500) {
+						res.status(Number(result.code));
+
+						logger = this.app.logger.warn;
+					} else {
+						res.status(500);
+					}
+
 					logger(JSON.stringify(result));
+				} else {
+					logger(util.inspect(result));
+
+					res.status(500);
+					result = this.app.AppError.from(result);
 				}
 			}
 
@@ -131,7 +144,7 @@ module.exports = class WebServer extends BaseModule {
 	 * @param req
 	 * @returns {*}
 	 */
-	selectController (req) {
+	_selectController (req) {
 		let pathIsExists = false;
 
 		req.pathParts = req.path.split('/');
@@ -181,7 +194,7 @@ module.exports = class WebServer extends BaseModule {
 		}
 	}
 
-	prepareReqParams (req, controller) {
+	_prepareReqParams (req, controller) {
 		for (let i = 0; i < controller._pathParts.length; i += 1) {
 			const pathPart = controller._pathParts[i];
 
@@ -193,7 +206,7 @@ module.exports = class WebServer extends BaseModule {
 		}
 	}
 
-	async runAuth (req, authConfig) {
+	async _runAuth (req, authConfig) {
 		if (!authConfig) {
 			return;
 		}
@@ -207,5 +220,49 @@ module.exports = class WebServer extends BaseModule {
 		}
 
 		return authResult;
+	}
+
+	setPreController (func) {
+		if (typeof func !== 'function') {
+			throw new this.app.AppError({
+				code:    'INVALID_PRE_CONTROLLER',
+				message: 'Pre-controller must be a function'
+			});
+		}
+
+		this.app._preController = func;
+	}
+
+	setPreHandler (func) {
+		if (typeof func !== 'function') {
+			throw new this.app.AppError({
+				code:    'INVALID_PRE_HANDLER',
+				message: 'Pre-handler must be a function'
+			});
+		}
+
+		this.app._preHandler = func;
+	}
+
+	setPostHandler (func) {
+		if (typeof func !== 'function') {
+			throw new this.app.AppError({
+				code:    'INVALID_POST_CONTROLLER',
+				message: 'Post-controller must be a function'
+			});
+		}
+
+		this.app._postController = func;
+	}
+
+	setPostController (func) {
+		if (typeof func !== 'function') {
+			throw new this.app.AppError({
+				code:    'INVALID_POST_HANDLER',
+				message: 'Post-handler must be a function'
+			});
+		}
+
+		this.app._postHandler = func;
 	}
 };
