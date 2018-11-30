@@ -72,6 +72,8 @@ module.exports = class Controllers extends BaseModule {
 						}
 					}
 
+					this.app.logger.info(`controller >>> ${methodName} ${controllerPath} ${config.description}`);
+
 					this.app.controllers.push(Object.assign({
 						_method: methodName,
 						_path:   controllerPath,

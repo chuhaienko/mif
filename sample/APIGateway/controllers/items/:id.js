@@ -16,6 +16,6 @@ exports.GET = {
 	},
 
 	handler: function (req) {
-		return this.misc.items[req.params.id];
+		return this.local.items[req.params.id];
 	}
 };

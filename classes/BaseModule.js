@@ -1,12 +1,12 @@
 'use strict';
 
-const _ = require('lodash');
+const Base = require('./Base');
+const _    = require('lodash');
 
 
-module.exports = class BaseModule {
+module.exports = class BaseModule extends Base {
 	constructor (app, config) {
-		this.app    = app;
-		this.config = config;
+		super(app, config);
 
 		this.priority = {
 			init:  Number(_.get(this.config, 'priority.init'))  || 0,

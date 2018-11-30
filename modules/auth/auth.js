@@ -10,7 +10,13 @@ module.exports = class Auth extends BaseModule {
 	async init () {
 		this.app.auth = {};
 
-		const authClasses = requireDir(path.resolve(this.app.getDirs().app, 'auth'));
+		let authClasses;
+
+		try {
+			authClasses = requireDir(path.resolve(this.app.getDirs().app, 'auth'));
+		} catch (err) {
+			authClasses = {};
+		}
 
 		const modeNames = Object.keys(authClasses);
 

@@ -2,7 +2,7 @@
 Node.js modular framework for microservices
 
 ## Main
-`this.misc` - hash for misc data. Safe to own dev/user data
+`this.local` - hash for local data. Safe for own dev/user data
 
 `this.config` - hash of configs from dir ./config
 
@@ -21,6 +21,7 @@ Node.js modular framework for microservices
 ## Modules
 ### Logger
 `this.logger` - instance of [winston](https://github.com/winstonjs/winston)
+`req.logger` - methods for logging in request
 
 Priority: -1000
 
@@ -35,16 +36,30 @@ Priority: -990
 Priority: -980 
  
 ### Controllers
-`this.controllers` - hash of controllers from dir ./controllers
+`this.controllers` - collections of controllers from dir ./controllers
 
 Priority: -970
 
-### WebServer
-`this.webserver.setPreController(func)` - sets method which will run before controller is chosen
-`this.webserver.setPreHandler(func)` - sets method which will run before handler
-`this.webserver.setPostHandler(func)` - sets method which will run after handler
-`this.webserver.setPostController(func)` - sets method which will run before sending response
-`preController` and `preHandler` get `(req, res)`
-`postHandler` and `postController` get `(result, req, res)` and return `result`. So these methods affect result which will send as response
+### Routes
+`this.modules.routes.getController(req)` -
+`this.modules.routes.appendReq(req, controller)` -  
 
+Priority: -960
+
+### BaseServer
+`this.modules.*server.setPre(type, func)` - sets function for pre-event hook. Events: `controller`, `auth`, `handler`, `response`
+Hook-function for `controller` gets `(app, req)`.
+Hook-function for `auth` gets `(app, req, controller)`.
+Hook-function for `handler` gets `(app, req, controller)`.
+Hook-function for `response` gets `(app, req, controller, response)`.
+
+### WebServer
+Priority: -900
+
+### AMQPServer
+`this.services.request(serviceName, method, path, payload)` - make request to another service
+`this.services.publish(name, payload)` - publish message
+`req.services.request(serviceName, method, path, payload)` - make request to another service
+`req.services.publish(name, payload)` - publish message
+  
 Priority: -900
