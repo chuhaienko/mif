@@ -19,7 +19,7 @@ module.exports = class AppError extends Error {
 	}
 
 	static from (err) {
-		if (err.isAppError) {
+		if (err.isAppError && err instanceof AppError) {
 			return err;
 		} else {
 			return new AppError(err);
@@ -32,5 +32,9 @@ module.exports = class AppError extends Error {
 			message: this.message,
 			details: this.details
 		};
+	}
+
+	toString () {
+		return `AppError: {code: ${JSON.stringify(this.code)}, message: ${JSON.stringify(this.message)}, details: ${JSON.stringify(this.details)}}`;
 	}
 };

@@ -22,7 +22,7 @@ class Logger extends BaseModule {
 		const loggerFormat = winston.format.printf((data) => {
 			return `${moment().format(this.config.timeFormat)} ${data.level}: ${data.message}`;
 		});
-		this.app.logger = winston.createLogger({
+		this.logger = winston.createLogger({
 			level:  (process.env.NODE_ENV === 'production' ? 'info' : 'silly'),
 			levels: winston.config.npm.levels,
 			format: winston.format.combine(
@@ -34,9 +34,13 @@ class Logger extends BaseModule {
 			]
 		});
 
+		this.app.logger = {};
 		Object.keys(winston.config.npm.levels).forEach((level) => {
+			this.app.logger[level] = this.log.bind(this, level);
 			this.app.logger[level](`${level} message`);
 		});
+
+		this.app.addPre('request', this.preRequest.bind(this));
 
 		this.app.logger.info('Module logger is initialized');
 	}
@@ -46,11 +50,28 @@ class Logger extends BaseModule {
 	}
 
 	async stop () {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				resolve();
-			}, 1000);
+		// do nothing
+	}
+
+	preRequest (req) {
+		req.logger = {};
+
+		Object.keys(this.logger.levels).forEach((level) => {
+			req.logger[level] = this.log.bind(this, level, `[${req.id}]`);
 		});
+	}
+
+	log (level, ...args) {
+		let message = args.map((arg) => {
+			if (typeof arg === 'string') {
+				return arg;
+			} else {
+				return JSON.stringify(arg);
+			}
+		})
+		.join(' ');
+
+		this.logger[level](message);
 	}
 }
 

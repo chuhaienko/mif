@@ -4,7 +4,7 @@ const {BaseModule} = require('mif');
 
 module.exports = class Items extends BaseModule {
 	async init () {
-		this.app.misc.items = [];
+		this.app.local.items = [];
 	}
 
 	async start () {

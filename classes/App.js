@@ -7,7 +7,7 @@ const BaseModule = require('./BaseModule');
 const _          = require('lodash');
 
 
-module.exports = class Framework {
+module.exports = class App {
 	constructor () {
 		this._initializedAt = null;
 		this._startedAt     = null;
@@ -22,11 +22,15 @@ module.exports = class Framework {
 
 		this.AppError = AppError;
 
-		this.misc = {};
+		this.local = {};
 
 		this._isInitializing = false;
 		this._isStarting = false;
 		this._isStopping = false;
+
+		this._pre = {
+			request: []
+		};
 	}
 
 	async init () {
@@ -36,7 +40,7 @@ module.exports = class Framework {
 			return;
 		}
 
-		console.log(`=== === === mif initializing... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
+		console.log(`=== === === mif initializing... PWD: ${this._appDir}, NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
 
 		this._env = this._loadEnv();
 
@@ -72,7 +76,7 @@ module.exports = class Framework {
 			return;
 		}
 
-		console.log(`=== === === mif starting... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
+		console.log(`=== === === mif starting... PWD: ${this._appDir}, NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
 
 		// Start modules
 		let modulesNames = this.modulesOrder.start;
@@ -95,14 +99,14 @@ module.exports = class Framework {
 			return;
 		}
 
-		console.log(`=== === === mif stopping... NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
+		console.log(`=== === === mif stopping... PWD: ${this._appDir}, NODE_ENV: ${process.env.NODE_ENV}, PID: ${process.pid}, TS: ${new Date().toISOString()}`);
 
 		await new Promise(async (resolve, reject) => {
 			// Timeout for stop
 			let timeout = setTimeout(() => {
 				return reject(new this.AppError({
 					code:    'TIMEOUT_ERROR',
-					message: 'Framework can not stop correctly in time'
+					message: 'App can not stop correctly in time'
 				}));
 			}, this.config.mif.stopTimeout);
 
@@ -351,6 +355,25 @@ module.exports = class Framework {
 
 		} else {
 			return confObj;
+		}
+	}
+
+	addPre (type, func) {
+		if (typeof func !== 'function') {
+			throw new this.app.AppError({
+				code:    'INVALID_PRE_FUNCTION',
+				message: 'Pre-function must be a function'
+			});
+		}
+
+		this._pre[type].push(func);
+	}
+
+	async runPre (type, ...args) {
+		if (this._pre[type]) {
+			for (let i = 0; i < this._pre[type].length; i += 1) {
+				await this._pre[type][i].call(this, ...args);
+			}
 		}
 	}
 };

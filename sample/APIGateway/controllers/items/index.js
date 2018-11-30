@@ -8,7 +8,7 @@ exports.GET = {
 	},
 
 	handler: function () {
-		return this.misc.items;
+		return this.local.items;
 	}
 };
 
@@ -30,7 +30,7 @@ exports.POST = {
 	},
 
 	handler: function (req) {
-		this.misc.items.push({
+		this.local.items.push({
 			userId:    req.user && req.user.id,
 			title:     req.body.title,
 			price:     req.body.price,
@@ -38,7 +38,7 @@ exports.POST = {
 		});
 
 		return {
-			id: this.misc.items.length - 1
+			id: this.local.items.length - 1
 		};
 	}
 };

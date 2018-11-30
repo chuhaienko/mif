@@ -1,8 +1,11 @@
 'use strict';
 
-module.exports = class BaseModule {
+const Base = require('./Base');
+
+
+module.exports = class BaseAuth extends Base {
 	constructor (app) {
-		this.app = app;
+		super(app);
 
 		const methods = [
 			'init',

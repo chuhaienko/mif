@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
-const Framework = require('../classes/Framework');
+const App = require('../classes/App');
 
 
-const app = new Framework();
+const app = new App();
 
 (async () => {
 	await app.init();
