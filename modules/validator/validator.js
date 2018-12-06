@@ -1,13 +1,13 @@
 'use strict';
 
 const {BaseModule} = require('../../');
-const Joi          = require('joi');
+const joi          = require('joi');
 
 
 /* eslint global-require:0 */
 module.exports = class Validator extends BaseModule {
 	async init () {
-		this.app.validator = Joi.extend((joi) => {
+		this.app.validator = joi.extend((joi) => {
 			return {
 				base:     joi.string(),
 				name:     'string',

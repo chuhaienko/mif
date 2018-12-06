@@ -18,7 +18,7 @@ describe('/ping', function () {
 	it('Request without credentials', async () => {
 		let resp = await request({
 			method: 'GET',
-			url:    'http://localhost:8080/ping',
+			url:    'http://localhost:8080/ping?x=100&z=200',
 			json:   true
 		});
 
@@ -26,6 +26,9 @@ describe('/ping', function () {
 			method: 'GET',
 			local:  {
 				items: []
+			},
+			query: {
+				x: 100
 			}
 		});
 	});
@@ -51,22 +54,25 @@ describe('/ping', function () {
 		}
 	});
 
-	it('Request with valid credentials', async () => {
-		let resp = await request({
-			method: 'GET',
-			url:    'http://localhost:8080/ping',
-			json:   true,
-			auth:   {
-				user: 'mif',
-				pass: 'password'
-			}
-		});
+	it('Request with wrong params in query', async () => {
+		try {
+			await request({
+				method: 'GET',
+				url:    'http://localhost:8080/ping?x=100&y=hello',
+				json:   true,
+				auth:   {
+					user: 'mif',
+					pass: 'password'
+				}
+			});
 
-		expect(resp).includes({
-			method: 'GET',
-			local:  {
-				items: []
-			}
-		});
+			throw new Error('MUST FAIL');
+		} catch (err) {
+			expect(err.error).equals({
+				code:    400,
+				message: 'Wrong values in query',
+				details: '"y" must be a number'
+			});
+		}
 	});
 });

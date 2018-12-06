@@ -1,6 +1,6 @@
 {
   "name": "mif",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Modular framework for microservices",
   "main": "index.js",
   "scripts": {

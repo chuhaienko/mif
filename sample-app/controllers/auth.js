@@ -5,7 +5,7 @@ module.exports = {
 
 	validate: (joi) => {
 		return {
-			body: joi.object.keys({
+			body: joi.object().keys({
 				user: joi.string().required(),
 				pass: joi.string().required(),
 			})

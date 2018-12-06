@@ -6,6 +6,12 @@ const crypto     = require('crypto');
 const util       = require('util');
 const _          = require('lodash');
 
+const KEYS_FOR_VALIDATION = ['body', 'query', 'headers', 'params'];
+const VALIDATION_OPTIONS = {
+	abortEarly:   false,
+	stripUnknown: true
+};
+
 
 module.exports = class BaseServer extends BaseModule {
 	constructor (app, config) {
@@ -58,6 +64,9 @@ module.exports = class BaseServer extends BaseModule {
 
 			// Prepare req object {method, path, query, body, params, headers, ip, auth}
 			this.app.modules.router.appendReq(req, route);
+
+			// Validate req
+			this.validate(req, controller);
 
 			this.runPre('auth', req, controller);
 
@@ -135,5 +144,36 @@ module.exports = class BaseServer extends BaseModule {
 
 	genId () {
 		return bs58.encode(crypto.randomBytes(8)).substr(-8) + '_' +  String(Date.now()).substr(-4);
+	}
+
+	validate (req, controller) {
+		let schema;
+
+		if (typeof controller.validate === 'function') {
+			// Compile and cache
+			schema = controller.validate(this.app.validator);
+			controller.validate = schema;
+
+		} else if (typeof controller.validate === 'object') {
+			schema = controller.validate;
+		}
+
+		KEYS_FOR_VALIDATION.forEach((key) => {
+			if (!schema || !schema[key]) {
+				return;
+			}
+
+			let validationResult = this.app.validator.validate(req[key], schema[key], VALIDATION_OPTIONS);
+			req[key] = validationResult.value;
+
+			if (validationResult.error) {
+				validationResult.error.source = key;
+				throw new this.app.AppError({
+					code:    400,
+					message: `Wrong values in ${key}`,
+					details: _.get(validationResult.error, ['details', 0, 'message'])
+				});
+			}
+		});
 	}
 };
