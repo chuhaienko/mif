@@ -1,18 +1,6 @@
 'use strict';
 
-exports.GET = {
-	description: 'Get list of items',
-	auth:        {
-		type:   'basic-auth',
-		method: 'try',
-	},
-
-	handler: function () {
-		return this.local.items;
-	}
-};
-
-exports.POST = {
+module.exports = {
 	description: 'Save item',
 	auth:        {
 		type:   'basic-auth',

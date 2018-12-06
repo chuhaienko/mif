@@ -1,6 +1,6 @@
 'use strict';
 
-exports.ALL = {
+module.exports = {
 	description: 'Ping controller',
 
 	auth: {

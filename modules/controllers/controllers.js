@@ -2,8 +2,7 @@
 
 const {BaseModule} = require('../../');
 const p            = require('util').promisify;
-const Joi          = require('joi');
-const http         = require('http');
+const joi          = require('joi');
 const path         = require('path');
 const glob         = p(require('glob'));
 const _            = require('lodash');
@@ -12,17 +11,16 @@ const _            = require('lodash');
 /* eslint global-require:0 */
 module.exports = class Controllers extends BaseModule {
 	async init () {
-		this.app.controllers = [];
-		this.allowedMethods = http.METHODS.concat('ALL');
+		this.app.controllers = {};
 
-		const configSchema = Joi.object().keys({
-			description: Joi.string().required(),
-			auth:        Joi.object().keys({
-				type:   Joi.string().required(),
-				method: Joi.string(),
+		const controllerSchema = joi.object().keys({
+			description: joi.string().required(),
+			auth:        joi.object().keys({
+				type:   joi.string().required(),
+				method: joi.string(),
 			}).options({allowUnknown: true}),
-			validate: [Joi.func(), Joi.object()],
-			handler:  Joi.func().required()
+			validate: [joi.func(), joi.object()],
+			handler:  joi.func().required()
 		}).options({allowUnknown: true});
 
 		const cwd = path.resolve(this.app._appDir, 'controllers');
@@ -33,57 +31,42 @@ module.exports = class Controllers extends BaseModule {
 		};
 
 		let files = await glob('*.js', globOptions);
-		files.reverse();
 
 		files.forEach((filePath) => {
-			let module = require(filePath);
+			let controller = require(filePath);
 
-			let controllerPath = filePath.substr(cwd.length);
+			let controllerPath = filePath.substr(cwd.length + 1, filePath.length - cwd.length - 4);
+			let pathParts = controllerPath.split(/[\\/]/);
 
-			if (controllerPath.endsWith('/index.js')) {
-				controllerPath = controllerPath.substr(0, controllerPath.length - 9);
-			} else if (controllerPath.endsWith('.js')) {
-				controllerPath = controllerPath.substr(0, controllerPath.length - 3);
+			let result = joi.validate(controller, controllerSchema);
+
+			if (result.error) {
+				throw result.error;
 			}
 
-			_.forEach(module, (config, methodName) => {
-				if (this.allowedMethods.includes(methodName)) {
-					let result = Joi.validate(config, configSchema);
+			controller = result.value;
 
-					if (result.error) {
-						throw result.error;
-					}
-
-					if (config.auth) {
-						if (this.app.auth[config.auth.type]) {
-							if (config.auth.method) {
-								if (typeof this.app.auth[config.auth.type][config.auth.method] !== 'function') {
-									throw new this.app.AppError({
-										code:    'NO_AUTH_METHOD',
-										message: `Controller "${methodName} ${controllerPath}" requires auth method "${config.auth.type}.${config.auth.method}"`
-									});
-								}
-							}
-						} else {
+			if (controller.auth) {
+				if (this.app.auth[controller.auth.type]) {
+					if (controller.auth.method) {
+						if (typeof this.app.auth[controller.auth.type][controller.auth.method] !== 'function') {
 							throw new this.app.AppError({
-								code:    'NO_AUTH',
-								message: `Controller "${methodName} ${controllerPath}" requires auth type "${config.auth.type}"`
+								code:    'NO_AUTH_METHOD',
+								message: `Controller "${controllerPath}" requires auth method "${controller.auth.type}.${controller.auth.method}"`
 							});
 						}
 					}
-
-					this.app.logger.info(`controller >>> ${methodName} ${controllerPath} ${config.description}`);
-
-					this.app.controllers.push(Object.assign({
-						_method: methodName,
-						_path:   controllerPath,
-					}, config));
+				} else {
+					throw new this.app.AppError({
+						code:    'NO_AUTH',
+						message: `Controller "${controllerPath}" requires auth type "${controller.auth.type}"`
+					});
 				}
-			});
+			}
 
-			this._sortControllers();
+			this.app.logger.info(`controller >>> ${pathParts.join('.')} ${controller.description}`);
 
-			this._prepareControllers();
+			_.set(this.app.controllers, pathParts, controller);
 		});
 	}
 
@@ -93,27 +76,5 @@ module.exports = class Controllers extends BaseModule {
 
 	async stop () {
 		// do nothing
-	}
-
-	_sortControllers () {
-		this.app.controllers.sort((a, b) => { // Move controllers with method ALL to end of list
-			return a._method === 'ALL';
-		});
-
-		this.app.controllers.sort((a, b) => { // Sort controllers by path
-			return a._path > b._path;
-		});
-	}
-
-	_prepareControllers () {
-		this.app.controllers.forEach((controller) => {
-			controller._pathParts = this._getPathParts(controller._path);
-		});
-	}
-
-	_getPathParts (urlPath) {
-		let parts = urlPath.split('/');
-
-		return parts;
 	}
 };

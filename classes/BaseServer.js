@@ -52,11 +52,12 @@ module.exports = class BaseServer extends BaseModule {
 		try {
 			this.runPre('controller', req);
 
-			// Select corresponded controller
-			const controller = this.app.modules.router.selectController(req);
+			// Select corresponded route and controller
+			const route = this.app.modules.router.selectRoute(req);
+			const controller = route.controller;
 
 			// Prepare req object {method, path, query, body, params, headers, ip, auth}
-			this.app.modules.router.appendReq(req, controller);
+			this.app.modules.router.appendReq(req, route);
 
 			this.runPre('auth', req, controller);
 
@@ -95,8 +96,8 @@ module.exports = class BaseServer extends BaseModule {
 
 		let authResult = await authInstance.auth.call(this.app, req, authConfig);
 
-		if (authConfig.method) {
-			authResult = await authInstance[authConfig.method].call(this.app, req, authConfig, authResult);
+		if (authConfig.mode) {
+			authResult = await authInstance[authConfig.mode].call(this.app, req, authConfig, authResult);
 		}
 
 		return authResult;

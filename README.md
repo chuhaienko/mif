@@ -41,8 +41,9 @@ Priority: -980
 Priority: -970
 
 ### Routes
-`this.modules.routes.getController(req)` -
-`this.modules.routes.appendReq(req, controller)` -  
+`this.routes` - routes
+`this.modules.routes.selectRoute(req)` - Return matched route or throw error with code 404 or 405
+`this.modules.routes.appendReq(req, route)` - Append req object with necessary data (e.g. params)
 
 Priority: -960
 

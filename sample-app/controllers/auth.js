@@ -1,6 +1,6 @@
 'use strict';
 
-exports.POST = {
+module.exports = {
 	description: 'Check auth credentials',
 
 	validate: (joi) => {

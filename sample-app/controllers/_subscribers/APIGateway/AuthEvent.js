@@ -1,6 +1,6 @@
 'use strict';
 
-exports.POST = {
+module.exports = {
 	description: 'Listen for AuthEvent from APIGateway',
 
 	validate: function (joi) {

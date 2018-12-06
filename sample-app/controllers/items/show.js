@@ -1,6 +1,6 @@
 'use strict';
 
-exports.GET = {
+module.exports = {
 	description: 'Return item by id',
 	auth:        {
 		type:   'basic-auth',
@@ -9,7 +9,7 @@ exports.GET = {
 
 	validate: (joi) => {
 		return {
-			params: joi.object.keys({
+			params: joi.object().keys({
 				id: joi.number().integer().required()
 			})
 		};
