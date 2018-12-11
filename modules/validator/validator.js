@@ -7,6 +7,8 @@ const joi          = require('joi');
 /* eslint global-require:0 */
 module.exports = class Validator extends BaseModule {
 	async init () {
+		const config = this.config;
+
 		this.app.validator = joi.extend((joi) => {
 			return {
 				base:     joi.string(),
@@ -44,7 +46,7 @@ module.exports = class Validator extends BaseModule {
 				rules: [{
 					name: 'toOneLevelObject',
 					validate (params, value, state, options) {
-						return toOneLevelObject(value, this.config.depthLimit);
+						return toOneLevelObject(value, config.delimiter, config.depthLimit);
 					}
 				}]
 			};
@@ -61,7 +63,7 @@ module.exports = class Validator extends BaseModule {
 };
 
 
-function toOneLevelObject (obj, delimiter = '.', depthLimit) {
+function toOneLevelObject (obj, delimiter = '.', depthLimit = 10) {
 	if (!isPlainObject(obj)) {
 		return obj;
 	}

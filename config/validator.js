@@ -9,6 +9,7 @@ module.exports.default = function () {
 			stop:  -990
 		},
 
-		depthLimit: 10
+		delimiter:  '.',
+		depthLimit: 10,
 	};
 };
