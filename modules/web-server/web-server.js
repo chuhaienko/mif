@@ -2,6 +2,7 @@
 
 const {BaseServer} = require('../../');
 const express      = require('express');
+const _            = require('lodash');
 
 
 /* eslint global-require:0 */
@@ -60,11 +61,15 @@ module.exports = class WebServer extends BaseServer {
 
 	async _requestHandler (req, res) {
 		let response;
+		let params = {
+			headers: {},
+			status:  undefined
+		};
 
 		try {
 			req.from = req.ip;
 
-			response = await this.handleRequest(req);
+			response = await this.handleRequest(req, params);
 		} catch (err) {
 			response = err;
 		}
@@ -81,6 +86,16 @@ module.exports = class WebServer extends BaseServer {
 				res.status(500);
 				response = this.app.AppError.from(response);
 			}
+		}
+
+		// Set headers
+		_.each(params.headers, (value, name) => {
+			res.set(String(name), String(value));
+		});
+
+		// Set status if exists
+		if (Number(params.status)) {
+			res.status(Number(params.status));
 		}
 
 		/* eslint callback-return: 0 */

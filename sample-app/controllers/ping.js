@@ -17,7 +17,10 @@ module.exports = {
 		};
 	},
 
-	handler: async function (req) {
+	handler: async function (req, params) {
+		params.headers['Access-Control-Allow-Origin'] = '*';
+		params.status = 201;
+
 		return {
 			method: req.method,
 			time:   new Date().toISOString(),

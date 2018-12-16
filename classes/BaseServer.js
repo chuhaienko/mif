@@ -43,7 +43,7 @@ module.exports = class BaseServer extends BaseModule {
 		};
 	}
 
-	async handleRequest (req) {
+	async handleRequest (req, params) {
 		let response;
 
 		req.type      = req.type      || this.type;
@@ -76,9 +76,9 @@ module.exports = class BaseServer extends BaseModule {
 			this.runPre('handler', req, controller);
 
 			// Run handler
-			response = await controller.handler.call(this.app, req);
+			response = await controller.handler.call(this.app, req, params);
 
-			response = await this.runPre('response', req, controller, response);
+			response = await this.runPre('response', req, controller, response, params);
 
 		} catch (err) {
 			if (err.isAppError) {
@@ -125,11 +125,12 @@ module.exports = class BaseServer extends BaseModule {
 
 	async runPre (type, ...args) {
 		if (type === 'response') {
+			let params = args.pop();
 			let response = args.pop();
 
 			if (this.pre[type]) {
 				for (let i = 0; i < this.pre[type].length; i += 1) {
-					response = await this.pre[type][i].call(this.app, ...args, response);
+					response = await this.pre[type][i].call(this.app, ...args, response, params);
 				}
 			}
 
